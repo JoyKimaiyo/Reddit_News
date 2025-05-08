@@ -6,3 +6,6 @@ mysql.connector
 streamlit
 
 apache-airflow
+
+mysqlclient
+SQLAlchemy

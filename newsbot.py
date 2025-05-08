@@ -1,60 +1,40 @@
 #!/usr/bin/env python3
 """
-Streamlit Newsbot Viewer for Reddit Posts
+Streamlit Newsbot Viewer for Reddit Posts - Using Streamlit DB Connection
 """
 
 import streamlit as st
-import mysql.connector
+from datetime import datetime
 import os
 import requests
 from dotenv import load_dotenv
-from datetime import datetime
 from PIL import Image
 
 # Load environment variables
 load_dotenv()
 
-# MySQL Configuration
-DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": os.getenv("DB_PASSWORD"),
-    "database": "reddit_posts",
-    "auth_plugin": "mysql_native_password"
-}
-
-def get_connection():
-    try:
-        return mysql.connector.connect(**DB_CONFIG)
-    except mysql.connector.Error as err:
-        st.error(f"Database connection failed: {err}")
-        return None
+# Initialize Streamlit DB connection
+@st.cache_resource
+def get_db_connection():
+    return st.connection("mysql", type="sql", url=os.getenv("DATABASE_URL"))
 
 def fetch_posts(subreddit=None, limit=20):
-    conn = get_connection()
-    if not conn:
-        return []
-
-    query = "SELECT title, url, score, subreddit, publish_date, full_text FROM reddit_posts"
-    params = []
-
+    conn = get_db_connection()
+    
+    base_query = "SELECT title, url, score, subreddit, publish_date, full_text FROM reddit_posts"
+    
     if subreddit and subreddit != "All":
-        query += " WHERE subreddit = %s"
-        params.append(subreddit)
-
-    query += " ORDER BY publish_date DESC LIMIT %s"
-    params.append(limit)
-
+        query = f"{base_query} WHERE subreddit = :subreddit ORDER BY publish_date DESC LIMIT :limit"
+        params = {"subreddit": subreddit, "limit": limit}
+    else:
+        query = f"{base_query} ORDER BY publish_date DESC LIMIT :limit"
+        params = {"limit": limit}
+    
     try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(query, params)
-        return cursor.fetchall()
-    except mysql.connector.Error as err:
+        return conn.query(query, params=params)
+    except Exception as err:
         st.error(f"Failed to fetch posts: {err}")
         return []
-    finally:
-        cursor.close()
-        conn.close()
 
 def generate_with_gemini(prompt):
     api_key = os.getenv("GEM_API")
@@ -144,7 +124,7 @@ st.markdown("---")
 if sub_filter != "All":
     st.subheader(f"Latest from r/{sub_filter}")
     all_posts = fetch_posts(sub_filter, limit)
-    if not all_posts:
+    if all_posts.empty:
         st.warning("No posts found in the selected subreddit.")
     else:
         # Two-column layout for posts and AI help
@@ -155,7 +135,7 @@ if sub_filter != "All":
             if "visible_posts" not in st.session_state:
                 st.session_state.visible_posts = num_to_show
 
-            for i, post in enumerate(all_posts[:st.session_state.visible_posts]):
+            for i, post in all_posts.head(st.session_state.visible_posts).iterrows():
                 with st.expander(f"**{post['title']}** (⬆️ {post['score']})"):
                     st.markdown(f"**Subreddit:** r/{post['subreddit']}")
                     st.markdown(f"**Published:** {post['publish_date'].strftime('%Y-%m-%d %H:%M:%S')}")
