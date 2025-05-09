@@ -1,15 +1,14 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 import praw
 import mysql.connector
-import sys
-from datetime import datetime, timedelta
+import pandas as pd
 
-# Load environment variables (ensure your .env file is accessible by Airflow)
+# Load environment variables
 load_dotenv()
 
 # Airflow DAG arguments
@@ -20,14 +19,14 @@ default_args = {
     'retries': 1,
 }
 
-# Reddit API credentials (it's better to manage these as Airflow Connections or Variables)
+# Reddit API credentials
 REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
 REDDIT_SECRET = os.getenv("REDDIT_SECRET")
 REDDIT_APP_NAME = "newsbot_airflow"
 REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
 REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
 
-# Database configuration (ideally, manage this as an Airflow Connection)
+# Database configuration
 DB_CONFIG = {
     "host": "localhost",
     "user": "root",
@@ -106,7 +105,7 @@ def get_reddit_client():
         return reddit
     except Exception as e:
         print(f"Reddit authentication failed: {e}")
-        raise  # Re-raise the exception to fail the Airflow task
+        raise
 
 def insert_post(post):
     conn = connect_db()
@@ -187,16 +186,29 @@ def scrape_subreddit(subreddit_name, limit=20):
         return saved_count
     except Exception as e:
         print(f"Error scraping r/{subreddit_name}: {e}")
-        raise  # Re-raise the exception to fail the Airflow task
+        raise
+
+def export_to_csv():
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password=os.getenv("DB_PASSWORD"),
+        database='reddit_posts',
+    )
+    
+    df = pd.read_sql("SELECT * FROM reddit_posts", conn)
+    df.to_csv("clean_news.csv", index=False)
+    print("Exported to clean_news.csv")
+    conn.close()
 
 with DAG(
     dag_id='reddit_scraper_automation',
     default_args=default_args,
     description='Scrapes hot posts from specified subreddits and stores them in a database',
     schedule_interval='@daily',
-  # Run once every hour at the beginning of the hour
     catchup=False,
 ) as dag:
+    
     create_table_task = PythonOperator(
         task_id='create_reddit_posts_table',
         python_callable=create_table,
@@ -211,5 +223,9 @@ with DAG(
         )
         scrape_tasks.append(scrape_task)
 
-    create_table_task >> scrape_tasks
+    export_csv_task = PythonOperator(
+        task_id='export_to_csv',
+        python_callable=export_to_csv,
+    )
 
+    create_table_task >> scrape_tasks >> export_csv_task

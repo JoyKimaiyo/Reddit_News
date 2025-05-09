@@ -8,3 +8,7 @@ This app offers an opportunity to:
 Keep updated with the latest news in the data field
 Explore hot topics from leading subreddits
 Get AI assistance to understand key concepts and tools
+
+The app updates daily
+
+Link https://joykimaiyo-reddit-news-newsbot-q6m9v1.streamlit.app/

@@ -9,3 +9,4 @@ apache-airflow
 
 mysqlclient
 SQLAlchemy
+pandas
