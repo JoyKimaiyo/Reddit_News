@@ -1,0 +1,7 @@
+streamlit==1.30.0
+pandas==2.1.4
+mysql-connector-python==8.1.0
+python-dotenv==1.0.0
+requests==2.31.0
+Pillow==10.1.0
+google-generativeai==0.3.2

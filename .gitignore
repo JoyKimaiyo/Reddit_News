@@ -1,0 +1,40 @@
+# Default ignore everything first
+*
+
+# Then selectively include what we want
+!scraper/
+!newsbot/
+!clean_news/
+!communityIcon_hrq90p2z27k11(2)/
+
+# Include specific file types
+!*.py
+!*.csv
+!*.jpg
+!*.md
+!*.txt
+!Dockerfile
+!docker-compose.yml
+!.gitignore
+
+# Python-specific ignores (even in included directories)
+**/__pycache__/
+**/*.py[cod]
+**/*.so
+**/*.egg-info/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker/build artifacts
+**/build/
+**/dist/
+**/*.egg-info/
