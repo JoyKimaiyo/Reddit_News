@@ -74,11 +74,14 @@ with st.sidebar:
 
 def load_data():
     try:
-        df = pd.read_csv("clean_news.csv")
+        script_dir = os.path.dirname(__file__)
+        csv_path = os.path.join(script_dir, "clean_news.csv")
+        df = pd.read_csv(csv_path)
         return df
     except Exception as e:
         st.error(f"Failed to load data: {e}")
         return pd.DataFrame()
+
 
 def generate_with_gemini(prompt):
     api_key = os.getenv("GEM_API")
