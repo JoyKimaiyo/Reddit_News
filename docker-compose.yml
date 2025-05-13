@@ -1,11 +1,71 @@
 version: '3.8'
 
 services:
-  newsbot:
-    build: .
+  # Airflow Scraper
+  airflow:
+    build: ./scraper
+    ports:
+      - "8080:8080"
     environment:
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/airflow_db
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/airflow_db
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/airflow_db
       - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
-      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
-      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT}
-    restart: unless-stopped
+      - REDDIT_SECRET=${REDDIT_SECRET}
+      - REDDIT_APP_NAME=newsbot_airflow
+      - REDDIT_USERNAME=${REDDIT_USERNAME}
+      - REDDIT_PASSWORD=${REDDIT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: airflow_db
+      MYSQL_USER: airflow_user
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"  # HostPort:ContainerPort
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  # phpMyAdmin for Database Management
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    depends_on:
+      - mysql
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: airflow_user
+      PMA_PASSWORD: ${DB_PASSWORD}
+
+  # Newsbot App
+  newsbot:
+    build: ./newsbot
+    ports:
+      - "8501:8501"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=airflow_user
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=airflow_db
+      - GEM_API=${GEM_API}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
