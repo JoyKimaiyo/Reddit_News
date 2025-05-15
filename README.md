@@ -11,7 +11,7 @@ Get AI assistance to understand key concepts and tools
 
 The app updates daily
 
-Link https://joykimaiyo-reddit-news-newsbot-q6m9v1.streamlit.app/
+Link https://joykimaiyo-reddit-news-newsbotnewsbot-khpeeh.streamlit.app/
 
 ## To start;
 ### Clone the repo
