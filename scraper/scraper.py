@@ -26,9 +26,9 @@ REDDIT_APP_NAME = "newsbot_airflow"
 REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
 REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
 
-# Database configuration
+# Database configuration — use service name 'mysql' as host
 DB_CONFIG = {
-    "host": "localhost",
+    "host": "mysql",
     "user": "root",
     "password": os.getenv("DB_PASSWORD"),
     "database": "reddit_posts",
@@ -189,17 +189,22 @@ def scrape_subreddit(subreddit_name, limit=20):
         raise
 
 def export_to_csv():
-    conn = mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password=os.getenv("DB_PASSWORD"),
-        database='reddit_posts',
-    )
-    
-    df = pd.read_sql("SELECT * FROM reddit_posts", conn)
-    df.to_csv("clean_news.csv", index=False)
-    print("Exported to clean_news.csv")
-    conn.close()
+    conn = connect_db()
+    if not conn:
+        print("Database connection failed for export.")
+        return
+
+    try:
+        df = pd.read_sql("SELECT * FROM reddit_posts", conn)
+        # Save CSV to /opt/airflow directory inside container; change if you mount volumes
+        csv_path = "/opt/airflow/clean_news.csv"
+        df.to_csv(csv_path, index=False)
+        print(f"Exported to {csv_path}")
+    except Exception as e:
+        print(f"Error exporting to CSV: {e}")
+    finally:
+        if conn.is_connected():
+            conn.close()
 
 with DAG(
     dag_id='reddit_scraper_automation',

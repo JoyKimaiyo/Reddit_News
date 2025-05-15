@@ -33,3 +33,22 @@ clne the repository
 
 
 docker-compose up --build
+
+### Gemini API Credentials
+
+Go to google ai studio
+create API key
+then add GEM_API to the env too
+Also your DB_PASSWORD
+
+Your .env should be like this
+REDDIT_CLIENT_ID=client_id
+REDDIT_SECRET=secret
+REDDIT_APP_NAME=newsbot
+REDDIT_USERNAME=ExistingManner4433
+REDDIT_PASSWORD=.....
+
+DB_PASSWORD=.....
+
+
+GEM_API=.....
