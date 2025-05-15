@@ -13,6 +13,7 @@
 !*.jpg
 !*.md
 !*.txt
+!*.sh
 !Dockerfile
 !docker-compose.yml
 !.gitignore
