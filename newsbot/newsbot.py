@@ -22,7 +22,8 @@ with st.container():
     col_logo, col_title = st.columns([1, 5])
     with col_logo:
         script_dir = os.path.dirname(__file__)
-        image_path = os.path.join(script_dir, "communityIcon_hrq90p2z27k11 (2).jpg")
+        image_path = os.path.join(script_dir, "communityIcon.jpg")
+
 
         image = Image.open(image_path)
         st.image(image, width=60)

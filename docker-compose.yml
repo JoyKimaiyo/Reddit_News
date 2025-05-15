@@ -6,11 +6,14 @@ services:
     build: ./scraper
     ports:
       - "8080:8080"
+    command: standalone
     environment:
+      - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.auth.backend.basic_auth
+
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/airflow_db
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/airflow_db
-      - AIRFLOW__CELERY__RESULT_BACKEND=db+mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/airflow_db
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/reddit_posts
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/reddit_posts
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+mysql+pymysql://root:${DB_PASSWORD}@mysql:3306/reddit_posts
       - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
       - REDDIT_SECRET=${REDDIT_SECRET}
       - REDDIT_APP_NAME=newsbot_airflow
@@ -25,20 +28,20 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: airflow_db
-      MYSQL_USER: airflow_user
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: reddit_posts
     ports:
       - "3307:3306"  # HostPort:ContainerPort
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
+           test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+           interval: 10s
+           timeout: 5s
+           retries: 5
+           start_period: 20s
 
-  # phpMyAdmin for Database Management
+
+  # phpMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     depends_on:
@@ -48,10 +51,10 @@ services:
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
-      PMA_USER: airflow_user
+      PMA_USER: root
       PMA_PASSWORD: ${DB_PASSWORD}
 
-  # Newsbot App
+  # Newsbot Streamlit App
   newsbot:
     build: ./newsbot
     ports:
@@ -59,9 +62,9 @@ services:
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=airflow_user
+      - DB_USER=root
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=airflow_db
+      - DB_NAME=reddit_posts
       - GEM_API=${GEM_API}
     depends_on:
       mysql:
@@ -69,3 +72,5 @@ services:
 
 volumes:
   mysql_data:
+
+
